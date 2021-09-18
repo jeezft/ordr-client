@@ -1,7 +1,7 @@
 const fs = require("fs")
 const log = require("./files/logger")
 const _color = require("colors")
-
+let version = "v11"
 console.clear()
 console.log(_color.red(`                           /$$                             /$$ /$$                       /$$    
                           | $$                            | $$|__/                      | $$    
@@ -12,9 +12,8 @@ console.log(_color.red(`                           /$$                          
 |  $$$$$$/| $$      |  $$$$$$$| $$              |  $$$$$$$| $$| $$|  $$$$$$$| $$  | $$  |  $$$$/
 \\______/ |__/       \\_______/|__/               \\_______/|__/|__/ \\_______/|__/  |__/   \\___/  
 
-] Made by RyuK 2#0001
-`))
-log.info(`This build is not official!\n`)
+] Made by RyuK 2#0001      Version: ${version}`))
+console.log(_color.yellow(`⚠️ This build is not official!\n`))
 
 if (!fs.existsSync(process.cwd() + "/config.json")) {
     fs.writeFileSync(process.cwd() + "/config.json", "{}", { encoding: "utf-8" })
