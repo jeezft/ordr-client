@@ -1,4 +1,5 @@
 const uploadVideo = require("./uploadVideo")
+const log = require('./logger')
 let isRendering = false
 
 exports.startDanser = async (danserArguments, videoName) => {
@@ -19,27 +20,27 @@ exports.startDanser = async (danserArguments, videoName) => {
     danser.stdout.on(`data`, data => {
         if (data.includes("Progress")) {
             if (!config.showFullDanserLogs) {
-                console.log(data)
+                log.info(data.replace(/\n/g, "").slice(20))
             }
             sendProgression(data)
         }
         if (data.includes("Finished.")) {
-            console.log(`Rendering done.`)
+            log.done(`Rendering done.`)
             sendProgression("uploading")
             uploadVideo(videoName)
         }
         if (data.includes("Beatmap not found")) {
             sendProgression("beatmap_not_found")
-            console.log("Cannot process replay because the local map is older (or newer?) than the map used by the replay. This is not a problem, waiting for another job.")
+            log.error("Cannot process replay because the local map is older (or newer?) than the map used by the replay. This is not a problem, waiting for another job.")
         }
         if (data.includes("panic")) {
             sendProgression("panic")
             reportPanic(data)
             let logString = "An error occured. Waiting for another job, though you might want to check what happened in the danser.log file."
             if (config.customServer.apiUrl === "") {
-                console.log(logString)
+                log.error(logString)
             } else {
-                console.log(logString + " This error has been automatically reported to o!rdr.")
+                log.error(logString + " This error has been automatically reported to o!rdr.")
             }
         }
         if (config.showFullDanserLogs) {
@@ -50,15 +51,12 @@ exports.startDanser = async (danserArguments, videoName) => {
     danser.stderr.on("data", data => {
         if (data.includes("Invalid data found")) {
             sendProgression("invalid_data")
-            console.log()
         }
         if (data.includes("panic")) {
             sendProgression("panic")
-            console.log("An error occured. Waiting for another job.")
+            log.error("An error occured. Waiting for another job.")
         }
         if (config.showFullFFmpegLogs) {
-            console.log(data)
-        } else if (data.includes("bitrate") && data.includes("frame") && !data.includes("version")) {
             console.log(data)
         }
     })

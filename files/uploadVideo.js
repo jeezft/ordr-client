@@ -1,12 +1,14 @@
-module.exports = async videoName => {
-    const { sendProgression } = require("./server")
     const config = require(process.cwd() + "/config.json")
     const fs = require("fs")
     const axios = require("axios")
     const FormData = require("form-data")
+    const log = require('./logger')
+
+module.exports = async videoName => {
+    const { sendProgression } = require("./server")
     const { isRendering } = require("./danserHandler")
 
-    var uploadUrl
+    let uploadUrl
     if (config.customServer && config.customServer.apiUrl !== "") {
         uploadUrl = config.customServer.apiUrl + "/upload"
     } else {
@@ -17,7 +19,7 @@ module.exports = async videoName => {
     formData.append("rendererId", config.id)
     formData.append("videoFile", fs.createReadStream(`${process.cwd()}/files/danser/videos/${videoName}.mp4`))
 
-    console.log("Uploading video.")
+    log.info("Uploading video.")
 
     await axios
         .post(uploadUrl, formData, {
@@ -29,7 +31,7 @@ module.exports = async videoName => {
                 fs.unlinkSync(`${process.cwd()}/files/danser/videos/${videoName}.mp4`)
             }
             sendProgression("Done.")
-            console.log("Video sent succesfully. Waiting for a new task.")
+            log.done("Video sent succesfully. Waiting for a new task.")
             isRendering(false)
         })
         .catch(error => {

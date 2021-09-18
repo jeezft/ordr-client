@@ -4,6 +4,7 @@ module.exports = async data => {
     const config = require(process.cwd() + "/config.json")
     const { sendProgression } = require("./server")
     const settingsGenerator = require("./settingsGenerator")
+    const log = require('./logger')
 
     async function writeDanserConfig(danserConfig) {
         fs.writeFileSync("files/danser/settings/default.json", JSON.stringify(danserConfig, null, 1), "utf-8", err => {
@@ -13,7 +14,7 @@ module.exports = async data => {
 
     if (data.skin !== "default" && config.customServer.apiUrl === "") {
         if (fs.existsSync(`${process.cwd()}/files/danser/Skins/${data.skin}`)) {
-            console.log(`Skin ${data.skin} is present.`)
+            log.info(`Skin ${data.skin} is present.`)
             downloadReplay()
         } else {
             let linkSuffix = config.relay === "direct" ? "" : `-${config.relay}`
@@ -21,14 +22,14 @@ module.exports = async data => {
             const output = `${process.cwd()}/files/danser/Skins/${data.skin}.osk`
             let download = wget.download(link, output)
             download.on("error", err => {
-                console.log(err)
+                log.error(err)
                 process.exit()
             })
             download.on("start", fileSize => {
-                console.log(`Downloading the ${data.skin} skin at ${link}: ${fileSize} bytes to download...`)
+                log.info(`Downloading the ${data.skin} skin at ${link}: ${fileSize} bytes to download...`)
             })
             download.on("end", () => {
-                console.log(`Finished downloading ${data.skin}. Unpacking it now.`)
+                log.done(`Finished downloading ${data.skin}. Unpacking it now.`)
                 const unzipper = require("unzipper")
                 try {
                     fs.createReadStream(output)
@@ -38,12 +39,12 @@ module.exports = async data => {
                             })
                         )
                         .on("close", () => {
-                            console.log(`Finished unpacking ${data.skin}.`)
+                            log.done(`Finished unpacking ${data.skin}.`)
                             fs.unlinkSync(output)
                             downloadReplay()
                         })
                 } catch (err) {
-                    console.log("An error occured while unpacking the skin: " + err)
+                    log.error("An error occured while unpacking the skin: " + err)
                 }
             })
         }
@@ -58,14 +59,14 @@ module.exports = async data => {
         const output = `${process.cwd()}/files/danser/rawReplays/${replayFilename}`
         let download = wget.download(link, output)
         download.on("error", err => {
-            console.log(err)
+            log.error(err)
             process.exit()
         })
         download.on("start", fileSize => {
-            console.log(`Downloading the replay at ${link}: ${fileSize} bytes to download...`)
+            log.info(`Downloading the replay at ${link}: ${fileSize} bytes to download...`)
         })
         download.on("end", () => {
-            console.log(`Finished downloading the replay.`)
+            log.done(`Finished downloading the replay.`)
             downloadMap()
         })
     }
@@ -74,29 +75,28 @@ module.exports = async data => {
         const link = data.mapLink
         var filename = link.split("/").pop().split(".")[0]
         if (fs.existsSync(`${process.cwd()}/files/danser/Songs/${filename}`) && !data.needToRedownload) {
-            console.log(`Map ${filename} is present.`)
+            log.info(`Map ${filename} is present.`)
             settingsGenerator("change", () => {
                 changeConfig()
             })
         } else {
             if (data.needToRedownload) {
-                console.log("A beatmap update is available.")
+                log.info("A beatmap update is available.")
             }
             const output = `${process.cwd()}/files/danser/Songs/${filename}.osz`
             let download = wget.download(link, output)
             download.on("start", fileSize => {
-                console.log(`Downloading the map at ${link}: ${fileSize} bytes to download...`)
+                log.info(`Downloading the map at ${link}: ${fileSize} bytes to download...`)
             })
             download.on("end", () => {
-                console.log(`Finished downloading the map.`)
+                log.done(`Finished downloading the map.`)
                 settingsGenerator("change", () => {
                     changeConfig()
                 })
             })
             download.on("error", err => {
-                console.log(err)
                 sendProgression("download_404")
-                console.log("Beatmap from the mirror not found. Skipping this render and marking it as failed.")
+                log.error("Beatmap from the mirror not found. Skipping this render and marking it as failed.")
             })
         }
     }
@@ -254,7 +254,7 @@ module.exports = async data => {
 
         await writeDanserConfig(danserConfig)
 
-        console.log("Finished to write data to danser settings. Starting the render now.")
+        log.done("Finished to write data to danser settings. Starting the render now.")
 
         const danserHandler = require("./danserHandler").startDanser
         var danserArguments = ["-replay", `rawReplays/${replayFilename}`, "-out", `render${data.renderID}`]

@@ -1,12 +1,19 @@
+const log = require('./logger')
+const fs = require("fs")
+const axios = require("axios")
+
+const inquirer = require("inquirer")
+const wget = require("wget-improved")
+const settingsGenerator = require("./settingsGenerator")
+const danserUpdater = require("./danserUpdater")
+
 module.exports = async () => {
-    const fs = require("fs")
-    const axios = require("axios")
-    var spawn = require("child_process").spawn
-    const inquirer = require("inquirer")
-    const wget = require("wget-improved")
+    if (!fs.existsSync("./files/danser")){
+    fs.mkdirSync("./files/danser", { recursive: true });
+}
     const config = require(process.cwd() + "/config.json")
-    const settingsGenerator = require("./settingsGenerator")
-    const danserUpdater = require("./danserUpdater")
+    let spawn = require("child_process").spawn
+
     var avgFps, renderingType, danserExecutable, serverUrl
 
     if (config.customServer && config.customServer.apiUrl !== "") {
@@ -17,12 +24,12 @@ module.exports = async () => {
 
     await axios.request(serverUrl).catch(error => {
         if (!error.status) {
-            console.log("Network error. Maybe the o!rdr server is offline or you are not connected to Internet.")
+            log.error("Network error. Maybe the o!rdr server is offline or you are not connected to Internet.")
             process.exit()
         }
     })
 
-    console.log("Preparing danser for using with o!rdr client...")
+    log.info("Preparing danser for using with o!rdr client...")
 
     if (process.platform === "win32") {
         danserExecutable = "files/danser/danser.exe"
@@ -45,9 +52,9 @@ module.exports = async () => {
     }
 
     async function startFirstLaunch() {
-        console.log("By using o!rdr client sending your PC CPU and GPU model is required.")
-        console.log("Be sure to have a good internet connection (>10mbps upload preferably) to upload the videos that danser renders.")
-        console.log("Be aware that o!rdr client will regularly download and upload files such as replays, skins and video files.")
+        log.info("By using o!rdr client sending your PC CPU and GPU model is required.")
+        log.info("Be sure to have a good internet connection (>10mbps upload preferably) to upload the videos that danser renders.")
+        log.info("Be aware that o!rdr client will regularly download and upload files such as replays, skins and video files.")
         chooseRenderingType()
     }
 
@@ -99,10 +106,10 @@ module.exports = async () => {
                     })
                 }
                 function confirm() {
-                    console.log("Before registering to o!rdr a quick benchmark of your system is required.")
-                    console.log("The benchmark consists of running a render of a 30 second replay using danser.")
-                    console.log("Please close every CPU/GPU intensive application running on your computer.")
-                    console.log("Press enter to proceed to the benchmark.")
+                    log.info("Before registering to o!rdr a quick benchmark of your system is required.")
+                    log.info("The benchmark consists of running a render of a 30 second replay using danser.")
+                    log.info("Please close every CPU/GPU intensive application running on your computer.")
+                    log.info("Press enter to proceed to the benchmark.")
                     inquirer
                         .prompt([
                             {
@@ -129,17 +136,17 @@ module.exports = async () => {
             const output = `${process.cwd()}/files/danser/Songs/894883.osz`
             let download = wget.download(link, output)
             download.on("error", err => {
-                console.log(err)
+                log.error(err)
             })
             download.on("start", fileSize => {
-                console.log(`Downloading the benchmark map (894883) at ${link}: ${fileSize} bytes to download...`)
+                log.info(`Downloading the benchmark map (894883) at ${link}: ${fileSize} bytes to download...`)
             })
             download.on("end", () => {
-                console.log(`Finished downloading the benchmark map.`)
+                log.done(`Finished downloading the benchmark map.`)
                 downloadBenchReplay()
             })
         } else {
-            console.log("The benchmark map already exists.")
+            log.info("The benchmark map already exists.")
             downloadBenchReplay()
         }
     }
@@ -150,17 +157,17 @@ module.exports = async () => {
             const output = `${process.cwd()}/files/danser/rawReplays/BENCHMARK-replay-osu_1869933_2948907816.osr`
             let download = wget.download(link, output)
             download.on("error", err => {
-                console.log(err)
+                log.error(err)
             })
             download.on("start", fileSize => {
-                console.log(`Downloading the benchmark replay at ${link}: ${fileSize} bytes to download...`)
+                log.info(`Downloading the benchmark replay at ${link}: ${fileSize} bytes to download...`)
             })
             download.on("end", () => {
-                console.log(`Finished downloading the benchmark replay.`)
+                log.done(`Finished downloading the benchmark replay.`)
                 startBenchmark()
             })
         } else {
-            console.log("Benchmark replay already exists.")
+            log.info("Benchmark replay already exists.")
             startBenchmark()
         }
     }
@@ -179,12 +186,12 @@ module.exports = async () => {
         danser.stdout.setEncoding("utf8")
         danser.stdout.on(`data`, data => {
             if (data.includes("Progress")) {
-                console.log(data)
+                log.info(data.replace(/\n/g, "").slice(20))
             }
             if (data.includes("Finished.")) {
                 fpsHistory = fpsHistory.map(i => Number(i))
                 avgFps = Math.round(fpsHistory.reduce((prev, curr) => prev + curr, 0) / fpsHistory.length)
-                console.log(`Benchmark done. Average FPS was ${avgFps}.`)
+                log.done(`Benchmark done. Average FPS was ${avgFps}.`)
                 sendServer()
             }
             if (data.includes("panic")) {
@@ -198,7 +205,7 @@ module.exports = async () => {
                 console.log(data)
             }
             if (data.includes("bitrate") && data.includes("frame")) {
-                console.log(data)
+                log.info(data.replace(/\n/g, ""))
                 fps = /(?<=\bfps=\s)(\w+)/.exec(data)
                 if (fps !== null) {
                     if (fps[0] < 1000 && fps[0] >= 1) {
@@ -265,15 +272,15 @@ module.exports = async () => {
         await axios
             .post(serverUrl, server)
             .then(() => {
-                console.log("Your server ID is generated in the config.json file, do not share it with anyone.")
-                console.log("Your submission for helping o!rdr got sent successfully! Once accepted, you can open this client and get render jobs.")
-                console.log("You can send a message in the o!rdr Discord server to get accepted faster, but generally it does not take more than a day or two.")
-                console.log("If you have an osu! api v1 key, you can add it to the config file and get jobs which requires a scoreboard. (you can request an API key for free on the osu! website)")
-                console.log('If you have a powerful PC, you can also enable the motionBlurCapable setting in the config file, it will get you jobs that requires a "960fps" video.')
+                log.info("Your server ID is generated in the config.json file, do not share it with anyone.")
+                log.info("Your submission for helping o!rdr got sent successfully! Once accepted, you can open this client and get render jobs.")
+                log.info("You can send a message in the o!rdr Discord server to get accepted faster, but generally it does not take more than a day or two.")
+                log.info("If you have an osu! api v1 key, you can add it to the config file and get jobs which requires a scoreboard. (you can request an API key for free on the osu! website)")
+                log.info('If you have a powerful PC, you can also enable the motionBlurCapable setting in the config file, it will get you jobs that requires a "960fps" video.')
             })
             .catch(error => {
                 if (error.response) {
-                    console.log(`Something wrong happened! ${error}`)
+                    log.error(`Something wrong happened! ${error}`)
                     process.exit()
                 }
             })

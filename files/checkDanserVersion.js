@@ -1,4 +1,5 @@
 const { startServer } = require("./server")
+const log = require('./logger')
 
 module.exports = async () => {
     var filename
@@ -18,7 +19,7 @@ module.exports = async () => {
             const axios = require("axios")
             const correctmd5 = await axios.get("https://ordr-api.issou.best/dansermd5")
             if (correctmd5.data.correctHashes.indexOf(hash.digest("hex")) === -1) {
-                console.log("The version of danser is too old, updating now")
+                log.info("The version of danser is too old, updating now")
                 const danserUpdater = require("./danserUpdater")
                 await danserUpdater()
             } else {

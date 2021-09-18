@@ -5,6 +5,7 @@ const fs = require("fs")
 const config = require(process.cwd() + "/config.json")
 const { startServer } = require("./server")
 const settingsGenerator = require("./settingsGenerator")
+const log = require('./logger')
 
 module.exports = async cb => {
     var link
@@ -16,10 +17,10 @@ module.exports = async cb => {
     const output = path.resolve("files/danser/danser.zip")
     let download = wget.download(link, output)
     download.on("error", err => {
-        console.log(err)
+        log.error(err)
     })
     download.on("start", fileSize => {
-        console.log(`Downloading danser at ${link}: ${fileSize} bytes to download...`)
+        log.info(`Downloading danser at ${link}: ${fileSize} bytes to download...`)
     })
     download.on("end", () => {
         try {
@@ -30,7 +31,7 @@ module.exports = async cb => {
                     })
                 )
                 .on("close", () => {
-                    console.log(`Finished downloading danser.`)
+                    log.done(`Finished downloading danser.`)
                     if (config.id) {
                         startServer()
                     } else {
@@ -44,7 +45,7 @@ module.exports = async cb => {
                     }
                 })
         } catch (err) {
-            console.log("An error occured while unpacking Danser: " + err)
+            log.error("An error occured while unpacking Danser: " + err)
             process.exit(1)
         }
     })

@@ -1,7 +1,9 @@
+const config = require(process.cwd() + "/config.json")
+const fs = require("fs")
+
 module.exports = async (type, cb) => {
-    var spawn = require("child_process").spawn
-    const config = require(process.cwd() + "/config.json")
-    const fs = require("fs")
+    let spawn = require("child_process").spawn
+    
 
     async function writeDanserConfig() {
         const danserConfig = require(process.cwd() + "/files/danser/settings/default.json")
