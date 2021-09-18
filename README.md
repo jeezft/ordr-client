@@ -43,6 +43,6 @@ NodeJS v14+ is required.
 
 ## Build
 
-With pkg, you can build this client pretty easily. To do so, ensure you have pkg installed and run it at the root of the client source code folder with `pkg main.js`.
+With pkg, you can build this client pretty easily. To do so, ensure you have pkg installed and run it at the root of the client source code folder with `pkg .`.
 
 You can then reduce the binary filesize using gzexe on Linux. No solutions on compressing the binary on Windows have been researched, though you could package the client with Nexe and then compress with UPX (not tested on Windows, but works on Linux). UPX or strip does not work with pkg.
